@@ -82,7 +82,7 @@ namespace labutils
 
 namespace labutils
 {
-	Image load_image_texture2d( char const* aPath, VulkanContext const& aContext, VkCommandPool aCmdPool, Allocator const& aAllocator )
+	Image load_image_texture2d( char const* aPath, VulkanContext const& aContext, VkCommandPool aCmdPool, Allocator const& aAllocator , VkFormat aFormat)
 	{
 		//throw Error( "Not yet implemented" ); //TODO- (Section 4) implement me!
 		// Flip images vertically by default. 
@@ -94,7 +94,12 @@ namespace labutils
 		
 		// Load base image 
 		int baseWidthi, baseHeighti, baseChannelsi;
-		stbi_uc* data = stbi_load(textureDir.c_str(), &baseWidthi, &baseHeighti, &baseChannelsi, 4); // want 4 c h annel s = RGBA 
+		stbi_uc* data;
+
+		if (aFormat == VK_FORMAT_R8G8B8A8_SRGB) // for base color
+			data = stbi_load(textureDir.c_str(), &baseWidthi, &baseHeighti, &baseChannelsi, 4); // want 4 c h annel s = RGBA 
+		else
+			data = stbi_load(textureDir.c_str(), &baseWidthi, &baseHeighti, &baseChannelsi, 1);
 
 		if (!data)
 		{
@@ -104,7 +109,11 @@ namespace labutils
 		auto const baseHeight = std::uint32_t(baseHeighti);
 
 		// Create staging buffer and copy image data to it 
-		auto const sizeInBytes = baseWidth * baseHeight * 4;
+		std::size_t sizeInBytes;
+		if (aFormat == VK_FORMAT_R8G8B8A8_SRGB)
+			sizeInBytes = baseWidth * baseHeight * 4;
+		else
+			sizeInBytes = baseWidth * baseHeight * 1;
 
 		auto staging = create_buffer(aAllocator, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
@@ -123,7 +132,7 @@ namespace labutils
 
 		// Create image 
 		Image ret = create_image_texture2d(aAllocator, baseWidth, baseHeight,
-			VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_SAMPLED_BIT |
+			aFormat, VK_IMAGE_USAGE_SAMPLED_BIT |
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
 		// Create command buffer for data upload and begin recording
