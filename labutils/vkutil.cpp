@@ -244,15 +244,15 @@ namespace labutils
 		vkCmdPipelineBarrier(aCmdBuff, aSrcStageMask, aDstStageMask, 0, 0, nullptr, 0, nullptr, 1, &ibarrier);
 	}
 
-	Sampler create_default_sampler(VulkanContext const& aContext)
+	Sampler create_sampler(VulkanContext const& aContext, VkSamplerAddressMode const aAddressMode)
 	{
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
 		samplerInfo.minFilter = VK_FILTER_LINEAR;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeU = aAddressMode;
+		samplerInfo.addressModeV = aAddressMode;
 		samplerInfo.minLod = 0.f;
 		samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 		samplerInfo.mipLodBias = 0.f;

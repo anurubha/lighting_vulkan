@@ -46,5 +46,5 @@ namespace labutils
 		std::uint32_t aSrcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		std::uint32_t aDstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED
 	);
-	Sampler create_default_sampler(VulkanContext const&);
+	Sampler create_sampler(VulkanContext const&,  VkSamplerAddressMode const aAddressMode);
 }
