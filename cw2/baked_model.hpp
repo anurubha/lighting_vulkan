@@ -8,6 +8,7 @@
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 #include "../labutils/vkbuffer.hpp"
 namespace lut = labutils;
@@ -91,6 +92,7 @@ struct BakedMeshData
 	std::vector<glm::vec3> positions;
 	std::vector<glm::vec2> texcoords;
 	std::vector<glm::vec3> normals;
+	std::vector<glm::vec4> tangents;
 
 	std::vector<std::uint32_t> indices;
 };
@@ -108,19 +110,10 @@ struct SceneMesh
 	labutils::Buffer positions;
 	labutils::Buffer normals;
 	labutils::Buffer texcoords;
+	labutils::Buffer tangents;
 	labutils::Buffer indices;
 
 	std::uint32_t indexCount;
-
-	/*SceneMesh (labutils::Buffer p,
-	labutils::Buffer n,
-	labutils::Buffer t,
-	labutils::Buffer i,
-	std::uint32_t iCount): positions = p,
-	normals = n, 
-	texcoords = t,
-	indices = i,
-		indexCount = iCount;*/
 };
 
 BakedModel load_baked_model( char const* aModelPath );

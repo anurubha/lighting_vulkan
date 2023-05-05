@@ -10,7 +10,7 @@
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
-//#include <glm/vec4.hpp>
+#include <glm/vec4.hpp>
 
 //--    types                                   ///{{{1///////////////////////
 struct TriangleSoup
@@ -25,7 +25,7 @@ struct IndexedMesh
 	std::vector<glm::vec3> norm;
 	std::vector<glm::vec2> text;
 
-	//std::vector<glm::vec4> tangent; // Task 1.4
+	std::vector<glm::vec4> tangent; // Task 1.4
 
 	std::vector<std::uint32_t> indices;
 

@@ -90,16 +90,18 @@ namespace labutils
 		// al. instead define the first scanline to be the top-most one. 
 		stbi_set_flip_vertically_on_load(1);
 		
-		std::string textureDir = "assets/cw2/" + std::string(aPath);
-		
-		// Load base image 
-		int baseWidthi, baseHeighti, baseChannelsi;
 		stbi_uc* data;
+		int baseWidthi, baseHeighti, baseChannelsi;
 
-		if (aFormat == VK_FORMAT_R8G8B8A8_SRGB) // for base color
+		std::string textureDir = "assets/cw2/" + std::string(aPath);
+
+		if (aFormat == VK_FORMAT_R8G8B8A8_SRGB || aFormat == VK_FORMAT_R8G8B8A8_UNORM) // for base color
 			data = stbi_load(textureDir.c_str(), &baseWidthi, &baseHeighti, &baseChannelsi, 4); // want 4 c h annel s = RGBA 
-		else
+		else if (aFormat == VK_FORMAT_R8_UNORM)
 			data = stbi_load(textureDir.c_str(), &baseWidthi, &baseHeighti, &baseChannelsi, 1);
+		
+		
+
 
 		if (!data)
 		{
@@ -110,9 +112,10 @@ namespace labutils
 
 		// Create staging buffer and copy image data to it 
 		std::size_t sizeInBytes;
-		if (aFormat == VK_FORMAT_R8G8B8A8_SRGB)
+		if (aFormat == VK_FORMAT_R8G8B8A8_SRGB || aFormat == VK_FORMAT_R8G8B8A8_UNORM)
 			sizeInBytes = baseWidth * baseHeight * 4;
-		else
+		
+		else if (aFormat == VK_FORMAT_R8_UNORM)
 			sizeInBytes = baseWidth * baseHeight * 1;
 
 		auto staging = create_buffer(aAllocator, sizeInBytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);

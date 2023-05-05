@@ -4,7 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <unordered_map>
-
+#include <iostream>
 #include <cstdio>
 #include <cassert>
 #include <cstddef>
@@ -109,7 +109,7 @@ namespace
 		fast,
 		slow,
 		mousing,
-		rotateLight,
+		moveLight,
 		max	
 	};
 
@@ -189,8 +189,9 @@ int main() try
 	lut::DescriptorSetLayout sceneLayout = create_scene_descriptor_layout(window);
 
 	//create object descriptor set layout
-	lut::DescriptorSetLayout texturedobjectLayout = create_object_descriptor_layout(window, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3);
-	lut::DescriptorSetLayout alphamaskedobjectLayout = create_object_descriptor_layout(window, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4);
+	lut::DescriptorSetLayout texturedobjectLayout = create_object_descriptor_layout(window, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4);
+	lut::DescriptorSetLayout alphamaskedobjectLayout = create_object_descriptor_layout(window, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5);
+	
 
 	lut::PipelineLayout defaultPipeLayout = create_pipeline_layout(window, std::vector< VkDescriptorSetLayout> {sceneLayout.handle, texturedobjectLayout.handle});
 	lut::Pipeline defaultPipe = create_pipeline(window, renderPass.handle, defaultPipeLayout.handle, cfg::lightingShaderPath);
@@ -293,7 +294,7 @@ int main() try
 
 	// For each texture in model, create image 
 	std::vector <lut::Image> texImages;
-	texImages.resize(bakedModel.textures.size());
+	texImages.resize(bakedModel.textures.size()+1); //+1 for dummy normalmap
 	for (unsigned int i = 0; i < bakedModel.materials.size(); i++)
 	{	
 		{
@@ -302,7 +303,7 @@ int main() try
 			{
 				lut::CommandPool loadCmdPool = lut::create_command_pool(window, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 				texImages[bakedModel.materials[i].baseColorTextureId] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[i].baseColorTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8G8B8A8_SRGB));
-
+				
 				TexIDTextypeMap[bakedModel.materials[i].baseColorTextureId] =  BaseColor;
 			}
 			// Roughness
@@ -310,6 +311,7 @@ int main() try
 			{
 				lut::CommandPool loadCmdPool = lut::create_command_pool(window, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 				texImages[bakedModel.materials[i].roughnessTextureId] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[i].roughnessTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8_UNORM));
+				
 				TexIDTextypeMap[bakedModel.materials[i].roughnessTextureId] = Roughness;
 			}
 			// Metalness
@@ -317,7 +319,7 @@ int main() try
 			{
 				lut::CommandPool loadCmdPool = lut::create_command_pool(window, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 				texImages[bakedModel.materials[i].metalnessTextureId] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[i].metalnessTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8_UNORM));
-
+				
 				TexIDTextypeMap[bakedModel.materials[i].metalnessTextureId] = Metalness;
 			}
 			// Alpha Mask
@@ -326,9 +328,9 @@ int main() try
 				if (TexIDTextypeMap.find(bakedModel.materials[i].alphaMaskTextureId) == TexIDTextypeMap.end())
 				{
 					lut::CommandPool loadCmdPool = lut::create_command_pool(window, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-						texImages[bakedModel.materials[i].alphaMaskTextureId] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[i].alphaMaskTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8_UNORM));
+					texImages[bakedModel.materials[i].alphaMaskTextureId] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[i].alphaMaskTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8_UNORM));
 						
-						TexIDTextypeMap[bakedModel.materials[i].alphaMaskTextureId] = AlphaMask;
+					TexIDTextypeMap[bakedModel.materials[i].alphaMaskTextureId] = AlphaMask;
 				}
 			}
 			// Normal Mapping
@@ -337,9 +339,21 @@ int main() try
 				if (TexIDTextypeMap.find(bakedModel.materials[i].normalMapTextureId) == TexIDTextypeMap.end())
 				{
 					lut::CommandPool loadCmdPool = lut::create_command_pool(window, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-					texImages[bakedModel.materials[i].normalMapTextureId] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[i].normalMapTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8_UNORM));
+					texImages[bakedModel.materials[i].normalMapTextureId] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[i].normalMapTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8G8B8A8_UNORM));
 
 					TexIDTextypeMap[bakedModel.materials[i].normalMapTextureId] = NormalMap;
+					
+				}
+			}
+			else // else use 1x1 dummy map
+			{
+				if (TexIDTextypeMap.find(bakedModel.textures.size()) == TexIDTextypeMap.end())
+				{
+					lut::CommandPool loadCmdPool = lut::create_command_pool(window, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+					//Save it at the end of array
+					texImages[bakedModel.textures.size()] = (lut::load_image_texture2d(bakedModel.textures[bakedModel.materials[0].baseColorTextureId].path.c_str(), window, loadCmdPool.handle, allocator, VK_FORMAT_R8G8B8A8_UNORM));
+
+					TexIDTextypeMap[bakedModel.textures.size()] = NormalMap;
 				}
 			}
 			
@@ -355,6 +369,8 @@ int main() try
 		// Create view for the texture
 		if(TexIDTextypeMap[i] == BaseColor)
 			texImageViews.emplace_back(lut::create_image_view_texture2d(window, texImages[i].image, VK_FORMAT_R8G8B8A8_SRGB));
+		else if (TexIDTextypeMap[i] == NormalMap)
+			texImageViews.emplace_back(lut::create_image_view_texture2d(window, texImages[i].image, VK_FORMAT_R8G8B8A8_UNORM));
 		else
 			texImageViews.emplace_back(lut::create_image_view_texture2d(window, texImages[i].image, VK_FORMAT_R8_UNORM));
 	}
@@ -362,7 +378,6 @@ int main() try
 
 	// create default texture sampler
 	lut::Sampler defaultSampler = lut::create_sampler(window, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	//lut::Sampler alphamaskSampler = lut::create_sampler(window, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	
 	// allocate and initialize descriptor sets for texture
 	std::vector <VkDescriptorSet> materialDescriptors;
@@ -372,7 +387,7 @@ int main() try
 		{ 
 			VkDescriptorSet oDescriptors = lut::alloc_desc_set(window, dpool.handle, alphamaskedobjectLayout.handle);
 			{
-				VkWriteDescriptorSet desc[4]{};
+				VkWriteDescriptorSet desc[5]{};
 
 				VkDescriptorImageInfo basetextureInfo{};
 				basetextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -422,6 +437,21 @@ int main() try
 				desc[3].descriptorCount = 1;
 				desc[3].pImageInfo = &alphatextureInfo;
 
+				VkDescriptorImageInfo normaltextureInfo{};
+				normaltextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				if (bakedModel.materials[i].normalMapTextureId != 0xffffffff)
+					normaltextureInfo.imageView = texImageViews[bakedModel.materials[i].normalMapTextureId].handle;
+				else
+					normaltextureInfo.imageView = texImageViews[bakedModel.textures.size()].handle;
+				normaltextureInfo.sampler = defaultSampler.handle;
+
+				desc[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				desc[4].dstSet = oDescriptors;
+				desc[4].dstBinding = 4;
+				desc[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				desc[4].descriptorCount = 1;
+				desc[4].pImageInfo = &normaltextureInfo;
+
 				constexpr auto numSets = sizeof(desc) / sizeof(desc[0]);
 				vkUpdateDescriptorSets(window.device, numSets, desc, 0, nullptr);
 
@@ -432,7 +462,7 @@ int main() try
 		{
 			VkDescriptorSet oDescriptors = lut::alloc_desc_set(window, dpool.handle, texturedobjectLayout.handle);
 			{
-				VkWriteDescriptorSet desc[3]{};
+				VkWriteDescriptorSet desc[4]{};
 
 				VkDescriptorImageInfo basetextureInfo{};
 				basetextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -469,6 +499,21 @@ int main() try
 				desc[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				desc[2].descriptorCount = 1;
 				desc[2].pImageInfo = &metaltextureInfo;
+
+				VkDescriptorImageInfo normaltextureInfo{};
+				normaltextureInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				if (bakedModel.materials[i].normalMapTextureId != 0xffffffff)
+					normaltextureInfo.imageView = texImageViews[bakedModel.materials[i].normalMapTextureId].handle;
+				else
+					normaltextureInfo.imageView = texImageViews[bakedModel.textures.size()].handle;
+				normaltextureInfo.sampler = defaultSampler.handle;
+
+				desc[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				desc[3].dstSet = oDescriptors;
+				desc[3].dstBinding = 3;
+				desc[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				desc[3].descriptorCount = 1;
+				desc[3].pImageInfo = &normaltextureInfo;
 
 				constexpr auto numSets = sizeof(desc) / sizeof(desc[0]);
 				vkUpdateDescriptorSets(window.device, numSets, desc, 0, nullptr);
@@ -772,17 +817,6 @@ namespace
 	lut::PipelineLayout create_pipeline_layout(lut::VulkanContext const& aContext,
 		std::vector<VkDescriptorSetLayout> aLayout, unsigned int apushConstantSize)
 	{
-		//throw lut::Error("Not yet implemented"); //TODO: implement me!
-		/*VkDescriptorSetLayout layouts[] = { aLayout[0] };
-		for (int i = 1; i < aLayout.size(); i++) {
-			layouts[i] = aLayout[i];
-		}*/
-		//VkDescriptorSetLayout layouts[] = { 
-			// Order must match the set = N in the shaders 
-		//	aSceneLayout, // set 0 
-		//	aObjectLayout
-		//};
-
 		//VkPushConstantRange colorPushConstant;
 		//if (apushConstantSize != 0)
 		//{
@@ -844,7 +878,7 @@ namespace
 
 		/// //////////////////////
 
-		VkVertexInputBindingDescription vertexInputs[3]{};
+		VkVertexInputBindingDescription vertexInputs[4]{};
 		//position buffer
 		vertexInputs[0].binding = 0;
 		vertexInputs[0].stride = sizeof(glm::vec3);
@@ -858,7 +892,12 @@ namespace
 		vertexInputs[2].stride = sizeof(glm::vec2);
 		vertexInputs[2].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-		VkVertexInputAttributeDescription vertexAttributes[3]{};
+		//tangent buffer	
+		vertexInputs[3].binding = 3;
+		vertexInputs[3].stride = sizeof(glm::vec4);
+		vertexInputs[3].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		VkVertexInputAttributeDescription vertexAttributes[4]{};
 		vertexAttributes[0].binding = 0; // must match binding above
 		vertexAttributes[0].location = 0; // must match shader 
 		vertexAttributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -874,11 +913,16 @@ namespace
 		vertexAttributes[2].format = VK_FORMAT_R32G32_SFLOAT;
 		vertexAttributes[2].offset = 0;
 
+		vertexAttributes[3].binding = 3; // must match binding above
+		vertexAttributes[3].location = 3; // must match shader 
+		vertexAttributes[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		vertexAttributes[3].offset = 0;
+
 		VkPipelineVertexInputStateCreateInfo inputInfo{};
 		inputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		inputInfo.vertexBindingDescriptionCount = 3; // number of vertexInputs above 
+		inputInfo.vertexBindingDescriptionCount = 4; // number of vertexInputs above 
 		inputInfo.pVertexBindingDescriptions = vertexInputs;
-		inputInfo.vertexAttributeDescriptionCount = 3; // number of vertexAttributes above 
+		inputInfo.vertexAttributeDescriptionCount = 4; // number of vertexAttributes above 
 		inputInfo.pVertexAttributeDescriptions = vertexAttributes;
 
 
@@ -1146,11 +1190,13 @@ namespace
 			for (unsigned int i = 0; i < aMaterialMeshesMap[0][mat.first].size(); i++)
 			{
 				// Bind vertex input 
-				VkBuffer vBuffers[3] = { sceneMeshes[aMaterialMeshesMap[0][mat.first][i]].positions.buffer,
+				VkBuffer vBuffers[4] = { sceneMeshes[aMaterialMeshesMap[0][mat.first][i]].positions.buffer,
 										sceneMeshes[aMaterialMeshesMap[0][mat.first][i]].normals.buffer,
-										sceneMeshes[aMaterialMeshesMap[0][mat.first][i]].texcoords.buffer };
-				VkDeviceSize offsets[3]{};
-				vkCmdBindVertexBuffers(aCmdBuff, 0, 3, vBuffers, offsets);
+										sceneMeshes[aMaterialMeshesMap[0][mat.first][i]].texcoords.buffer,
+										sceneMeshes[aMaterialMeshesMap[0][mat.first][i]].tangents.buffer };
+
+				VkDeviceSize offsets[4]{};
+				vkCmdBindVertexBuffers(aCmdBuff, 0, 4, vBuffers, offsets);
 
 				//Bind Index Buffer
 				vkCmdBindIndexBuffer(aCmdBuff, sceneMeshes[aMaterialMeshesMap[0][mat.first][i]].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -1174,11 +1220,13 @@ namespace
 			for (unsigned int i = 0; i < aMaterialMeshesMap[1][mat.first].size(); i++)
 			{
 				// Bind vertex input 
-				VkBuffer vBuffers[3] = { sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].positions.buffer,
+				VkBuffer vBuffers[4] = { sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].positions.buffer,
 										sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].normals.buffer,
-										sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].texcoords.buffer };
-				VkDeviceSize offsets[3]{};
-				vkCmdBindVertexBuffers(aCmdBuff, 0, 3, vBuffers, offsets);
+										sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].texcoords.buffer,
+										sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].tangents.buffer };
+
+				VkDeviceSize offsets[4]{};
+				vkCmdBindVertexBuffers(aCmdBuff, 0, 4, vBuffers, offsets);
 
 				//Bind Index Buffer
 				vkCmdBindIndexBuffer(aCmdBuff, sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -1295,7 +1343,7 @@ namespace
 			break;
 
 		case GLFW_KEY_SPACE:
-			state->inputMap[std::size_t(EInputState::rotateLight)] = !isReleased;
+			state->inputMap[std::size_t(EInputState::moveLight)] = !isReleased;
 			break;
 
 		default:
@@ -1377,14 +1425,15 @@ namespace
 		if (aState.inputMap[std::size_t(EInputState::sink)])
 			cam = cam * glm::translate(glm::vec3(0.f, -move, 0.f));
 
-		if (aState.inputMap[std::size_t(EInputState::rotateLight)])
+
+		if (aState.inputMap[std::size_t(EInputState::moveLight)])
 		{
-			glm::mat4 lightRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			glm::mat4 lightRotationMatrix = glm::rotate(glm::mat4(1.0f), aElapsedTime, glm::vec3(0.0f, 0.0f, 1.0f));
 			aState.lightPos = glm::vec3(lightRotationMatrix * glm::vec4(aState.lightPos, 1.0f));
+			//aState.lightPos = aState.lightPos + glm::vec3(-5.0,0,0);
+			printf("%f, %f, %f\n", aState.lightPos.x, aState.lightPos.y, aState.lightPos.z);
 		}
 	}
-
-
 
 	void update_scene_uniforms(glsl::SceneUniform& aSceneUniforms, std::uint32_t aFramebufferWidth, std::uint32_t aFramebufferHeight, UserState const& aState)
 	{
@@ -1401,12 +1450,8 @@ namespace
 		aSceneUniforms.projCam = aSceneUniforms.projection * aSceneUniforms.camera;
 		aSceneUniforms.cameraPosition = aState.camera2world[3];
 
-		
-
 		aSceneUniforms.lightPosition = aState.lightPos;
 	}
-
-	
 }
 
 

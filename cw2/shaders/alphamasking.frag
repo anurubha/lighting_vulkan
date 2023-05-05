@@ -3,6 +3,7 @@
 layout (location = 0) in vec3 gPosition; //in world space
 layout (location = 1) in vec3 gNormal;
 layout (location = 2) in vec2 gTexCoord; 
+layout (location = 3) in vec4 gtangent;
 
 layout( set = 0, binding = 0 ) uniform UScene 
 	{ 
@@ -21,19 +22,29 @@ layout( set = 1, binding = 0 ) uniform sampler2D BaseColorSampler;
 layout( set = 1, binding = 1 ) uniform sampler2D RoughnessSampler; 
 layout( set = 1, binding = 2 ) uniform sampler2D MetalnessSampler; 
 layout( set = 1, binding = 3 ) uniform sampler2D AlphaMaskSampler; 
+layout( set = 1, binding = 4 ) uniform sampler2D NormalMapSampler;
 
 layout( location = 0 ) out vec4 oColor; 
 
 void main() 
 { 
+
 	highp float mask = texture( AlphaMaskSampler, gTexCoord ).r;
 	if(texture( BaseColorSampler, gTexCoord ).a < mask)
         discard;
 
+	// reading and converting from [0, 1] to [-1, 1]
+	vec3 mapNormal = normalize(2 * texture( NormalMapSampler, gTexCoord ).rgb - 1.0);
+	vec3 vNormal = normalize(gNormal);
+	vec4 tangent = normalize(gtangent);
+	vec3 bitangent = normalize(cross(vNormal, tangent.xyz) * tangent.w);
+
+	vec3 normal = normalize( mat3( tangent.xyz, bitangent, vNormal) * mapNormal); 
+	
 	vec3 lightDirection = normalize(uScene.lightPosition - gPosition); 
 	vec3 viewDirection = normalize(uScene.cameraPosition - gPosition);	
 	vec3 halfVector = normalize(viewDirection + lightDirection);
-	vec3 normal = normalize(gNormal);
+	// normal = normalize(gNormal);
 
 	vec3 basecolor = texture( BaseColorSampler, gTexCoord ).rgb;
 	highp float roughness = texture( RoughnessSampler, gTexCoord ).r;

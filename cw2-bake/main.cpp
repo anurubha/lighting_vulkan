@@ -49,7 +49,8 @@ namespace
 	 * indicate that this is a custom format by myself (=scsmbil) with
 	 * additional tangent space information.
 	 */
-	constexpr char kFileVariant[16] = "default";
+	//constexpr char kFileVariant[16] = "default";
+	 constexpr char kFileVariant[16] = "sc22ap-tan";
 
 	// types
 	struct TextureInfo_
@@ -108,6 +109,61 @@ catch( std::exception const& eErr )
 
 namespace
 {
+	void ComputeTangents(IndexedMesh &indexedMesh)
+	{
+		std::vector <tgen::VIndexT> indices;
+		std::vector <tgen::RealT> positions;
+		std::vector <tgen::RealT> uvs;
+		std::vector <tgen::RealT> normals;
+
+		indices.reserve(indexedMesh.indices.size());
+		positions.reserve(indexedMesh.vert.size() * 3);
+		uvs.reserve(indexedMesh.text.size() * 2);
+		normals.reserve(indexedMesh.norm.size() * 3);
+
+		for(unsigned int i=0; i<indexedMesh.indices.size(); i++)
+		{
+			indices.emplace_back(tgen::VIndexT(indexedMesh.indices[i]));
+		}
+
+		for (unsigned int i = 0; i < indexedMesh.vert.size(); i++)
+		{
+			positions.emplace_back(tgen::RealT(indexedMesh.vert[i].x));
+			positions.emplace_back(tgen::RealT(indexedMesh.vert[i].y));
+			positions.emplace_back(tgen::RealT(indexedMesh.vert[i].z));
+
+			uvs.emplace_back(tgen::RealT(indexedMesh.text[i].x));
+			uvs.emplace_back(tgen::RealT(indexedMesh.text[i].y));
+
+			normals.emplace_back(tgen::RealT(indexedMesh.norm[i].x));
+			normals.emplace_back(tgen::RealT(indexedMesh.norm[i].y));
+			normals.emplace_back(tgen::RealT(indexedMesh.norm[i].z));
+		}
+
+		//printf("%d", normals.size());
+		std::vector <tgen::RealT> cTan3D;
+		std::vector <tgen::RealT> cBitan3D;
+		tgen::computeCornerTSpace(indices, indices, positions, uvs, cTan3D, cBitan3D);
+		
+		std::vector <tgen::RealT> vTan3D;
+		std::vector <tgen::RealT> vBitan3D;
+		tgen::computeVertexTSpace(indices, cTan3D, cBitan3D, indexedMesh.text.size(), vTan3D, vBitan3D);
+		
+		
+		tgen::orthogonalizeTSpace(normals, vTan3D, vBitan3D);
+
+		std::vector <tgen::RealT> tan4D;
+		tgen::computeTangent4D(normals,vTan3D,vBitan3D, tan4D);
+
+		
+		for (unsigned int i = 0; i < tan4D.size(); i = i + 4)
+		{
+			indexedMesh.tangent.push_back(glm::vec4(tan4D[i], tan4D[i + 1], tan4D[i + 2], tan4D[i + 3]));
+			//printf("%d, %d, %d, %d\n", tan4D[i], tan4D[i + 1], tan4D[i + 2], tan4D[i + 3]);
+		}
+			
+	}
+
 	void process_model_( char const* aOutput, char const* aInputOBJ, glm::mat4x4 const& aStaticTransform )
 	{
 		static constexpr std::size_t vertexSize = sizeof(float)*(3+3+2);
@@ -129,14 +185,16 @@ namespace
 		std::printf( " - triangle soup vertices: %zu => %zu kB\n", inputVerts, inputVerts*vertexSize/1024 );
 
 		// Index meshes
-		auto const indexed = index_meshes_( model );
+		auto indexed = index_meshes_( model );
 
 		std::size_t outputVerts = 0, outputIndices = 0;
-		for( auto const& mesh : indexed )
+		for( auto & mesh : indexed )
 		{
 			outputVerts += mesh.vert.size();
-			outputIndices += mesh.indices.size();
+			outputIndices += mesh.indices.size();	
+			ComputeTangents(mesh);
 		}
+		
 
 		std::printf( " - indexed vertices: %zu with %zu indices => %zu kB\n", outputVerts, outputIndices, (outputVerts*vertexSize + outputIndices*sizeof(std::uint32_t))/1024 );
 
@@ -324,6 +382,7 @@ namespace
 			checked_write_( aOut, sizeof(glm::vec3)*vertexCount, imesh.vert.data() );
 			checked_write_( aOut, sizeof(glm::vec3)*vertexCount, imesh.norm.data() );
 			checked_write_( aOut, sizeof(glm::vec2)*vertexCount, imesh.text.data() );
+			checked_write_( aOut, sizeof(glm::vec4)*vertexCount, imesh.tangent.data());
 
 			checked_write_( aOut, sizeof(std::uint32_t)*indexCount, imesh.indices.data() );
 		}

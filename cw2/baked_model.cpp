@@ -12,7 +12,7 @@ namespace
 {
 	// See cw2-bake/main.cpp for more info
 	constexpr char kFileMagic[16] = "\0\0COMP5822Mmesh";
-	constexpr char kFileVariant[16] = "default";
+	constexpr char kFileVariant[16] = "sc22ap-tan";
 
 	constexpr std::uint32_t kMaxString = 32*1024;
 
@@ -147,6 +147,9 @@ namespace
 			data.texcoords.resize( V );
 			checked_read_( aFin, V*sizeof(glm::vec2), data.texcoords.data() );
 
+			data.tangents.resize(V);
+			checked_read_(aFin, V * sizeof(glm::vec4), data.tangents.data());
+
 			data.indices.resize( I );
 			checked_read_( aFin, I*sizeof(std::uint32_t), data.indices.data() );
 
@@ -193,6 +196,13 @@ void create_mesh(BakedModel aModel, lut::Allocator const& allocator, labutils::V
 			VMA_MEMORY_USAGE_GPU_ONLY
 		);
 
+		lut::Buffer vertexTanGPU = lut::create_buffer(
+			allocator,
+			sizeof(glm::vec4) * aModel.meshes[i].tangents.size(),
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+			VMA_MEMORY_USAGE_GPU_ONLY
+		);
+
 		lut::Buffer vertexIndGPU = lut::create_buffer(
 			allocator,
 			sizeof(std::uint32_t) * aModel.meshes[i].indices.size(),
@@ -218,6 +228,13 @@ void create_mesh(BakedModel aModel, lut::Allocator const& allocator, labutils::V
 		lut::Buffer uvStaging = lut::create_buffer(
 			allocator,
 			sizeof(glm::vec2) * aModel.meshes[i].texcoords.size(),
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VMA_MEMORY_USAGE_CPU_TO_GPU
+		);
+
+		lut::Buffer tanStaging = lut::create_buffer(
+			allocator,
+			sizeof(glm::vec4) * aModel.meshes[i].tangents.size(),
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VMA_MEMORY_USAGE_CPU_TO_GPU
 		);
@@ -256,6 +273,16 @@ void create_mesh(BakedModel aModel, lut::Allocator const& allocator, labutils::V
 		}
 		std::memcpy(uvPtr, aModel.meshes[i].texcoords.data(), sizeof(glm::vec2) * aModel.meshes[i].texcoords.size());
 		vmaUnmapMemory(allocator.allocator, uvStaging.allocation);
+
+		void* tanPtr = nullptr;
+		if (auto const res = vmaMapMemory(allocator.allocator, tanStaging.allocation, &tanPtr); VK_SUCCESS != res)
+		{
+			throw lut::Error("Mapping memory for writing\n"
+				"vmaMapMemory() returned %s", lut::to_string(res).c_str());
+
+		}
+		std::memcpy(tanPtr, aModel.meshes[i].tangents.data(), sizeof(glm::vec4) * aModel.meshes[i].tangents.size());
+		vmaUnmapMemory(allocator.allocator, tanStaging.allocation);
 
 		void* indPtr = nullptr;
 		if (auto const res = vmaMapMemory(allocator.allocator, indStaging.allocation, &indPtr); VK_SUCCESS != res)
@@ -326,6 +353,19 @@ void create_mesh(BakedModel aModel, lut::Allocator const& allocator, labutils::V
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
 		);
+
+		VkBufferCopy gcopy{};
+		gcopy.size = sizeof(glm::vec4) * aModel.meshes[i].tangents.size();
+
+		vkCmdCopyBuffer(uploadCmd, tanStaging.buffer, vertexTanGPU.buffer, 1, &gcopy);
+
+		lut::buffer_barrier(uploadCmd,
+			vertexTanGPU.buffer,
+			VK_ACCESS_TRANSFER_WRITE_BIT,
+			VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_VERTEX_INPUT_BIT
+		);
 		
 		VkBufferCopy icopy{};
 		ncopy.size = sizeof(std::uint32_t) * aModel.meshes[i].indices.size();
@@ -371,7 +411,9 @@ void create_mesh(BakedModel aModel, lut::Allocator const& allocator, labutils::V
 			std::move(vertexPosGPU),
 			std::move(vertexNormGPU),
 			std::move(vertexUvGPU),
+			std::move(vertexTanGPU),
 			std::move(vertexIndGPU),
+			
 			unsigned int(aModel.meshes[i].indices.size())// IndexCount
 			});
 	}
