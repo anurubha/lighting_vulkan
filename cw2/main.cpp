@@ -554,7 +554,7 @@ int main() try
 
 			if (changes.changedSize)
 			{
-				defaultPipe = create_pipeline(window, renderPass.handle, defaultPipeLayout.handle, cfg::defaultShaderPath);
+				defaultPipe = create_pipeline(window, renderPass.handle, defaultPipeLayout.handle, cfg::lightingShaderPath);
 				alphamaskPipe = create_pipeline(window, renderPass.handle, alphamaskPipeLayout.handle, cfg::alphamaskShaderPath);
 			}
 				
