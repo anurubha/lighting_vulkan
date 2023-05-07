@@ -73,6 +73,6 @@ void main()
 	vec3 Fr = LDiffuse + (D * F * G )/ max((4 * NoV * NoL), 0.0001); 
 
 	oColor = vec4(AmbientLight + Fr * uScene.lightColor * NoL , 1.0f);
-	//oColor = vec4(D,D,D,1.0);
+	
 } 
 
