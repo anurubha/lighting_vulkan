@@ -85,10 +85,8 @@ namespace
 	// Local types/structures:
 	namespace glsl
 	{
-		//glm::vec3 LightPosition ;
-
 		struct SceneUniform
-		{ // Note: need to be careful about the packing/alignment here! 
+		{ 
 			glm::mat4 camera;
 			glm::mat4 projection;
 			glm::mat4 projCam;
@@ -768,23 +766,6 @@ namespace
 
 	lut::DescriptorSetLayout create_object_descriptor_layout(lut::VulkanWindow const& aWindow, VkDescriptorType aDescriptorType, unsigned int aBindingSize)
 	{
-		//throw lut::Error("Not yet implemented"); //TODO: (Section 4) implement me!
-		//VkDescriptorSetLayoutBinding bindings[3]{};
-		//bindings[0].binding = 0; // this must match the shaders
-		//bindings[0].descriptorType = aDescriptorType;
-		//bindings[0].descriptorCount = 1;
-		//bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		//bindings[1].binding = 1; // this must match the shaders
-		//bindings[1].descriptorType = aDescriptorType;
-		//bindings[1].descriptorCount = 1;
-		//bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		//bindings[2].binding = 2; // this must match the shaders
-		//bindings[2].descriptorType = aDescriptorType;
-		//bindings[2].descriptorCount = 1;
-		//bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
 		std::vector <VkDescriptorSetLayoutBinding> bindings;
 		bindings.resize(aBindingSize);
 
@@ -794,7 +775,6 @@ namespace
 			bindings[i].descriptorType = aDescriptorType;
 			bindings[i].descriptorCount = 1;
 			bindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
 		}
 
 		VkDescriptorSetLayoutCreateInfo layoutInfo{};
