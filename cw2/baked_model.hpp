@@ -10,6 +10,10 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+//For Task 1.5
+//#include <half.hpp>
+//using half_float::half;
+
 #include "../labutils/vkbuffer.hpp"
 namespace lut = labutils;
 /* Baked file format:
@@ -94,6 +98,8 @@ struct BakedMeshData
 	std::vector<glm::vec3> normals;
 	std::vector<glm::vec4> tangents;
 
+	//std::vector<half[3]> tbnQuaternion; // For task 1.5
+
 	std::vector<std::uint32_t> indices;
 };
 
@@ -114,6 +120,7 @@ struct SceneMesh
 	labutils::Buffer indices;
 
 	std::uint32_t indexCount;
+
 };
 
 BakedModel load_baked_model( char const* aModelPath );

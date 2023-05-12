@@ -368,9 +368,9 @@ void create_mesh(BakedModel aModel, lut::Allocator const& allocator, labutils::V
 		);
 		
 		VkBufferCopy icopy{};
-		ncopy.size = sizeof(std::uint32_t) * aModel.meshes[i].indices.size();
+		icopy.size = sizeof(std::uint32_t) * aModel.meshes[i].indices.size();
 
-		vkCmdCopyBuffer(uploadCmd, indStaging.buffer, vertexIndGPU.buffer, 1, &ncopy);
+		vkCmdCopyBuffer(uploadCmd, indStaging.buffer, vertexIndGPU.buffer, 1, &icopy);
 
 		lut::buffer_barrier(uploadCmd,
 			vertexIndGPU.buffer,
@@ -405,17 +405,14 @@ void create_mesh(BakedModel aModel, lut::Allocator const& allocator, labutils::V
 				"vkWaitForFences() returned %s", lut::to_string(res).c_str());
 		}
 
-
-		
-		sceneMeshes.emplace_back(SceneMesh{
-			std::move(vertexPosGPU),
-			std::move(vertexNormGPU),
-			std::move(vertexUvGPU),
-			std::move(vertexTanGPU),
-			std::move(vertexIndGPU),
+		sceneMeshes[i].positions = std::move(vertexPosGPU);
+		sceneMeshes[i].normals = std::move(vertexNormGPU);
+		sceneMeshes[i].texcoords = std::move(vertexUvGPU);
+		sceneMeshes[i].tangents = std::move(vertexTanGPU);
+		sceneMeshes[i].indices = std::move(vertexIndGPU);
+		sceneMeshes[i].indexCount = unsigned int(aModel.meshes[i].indices.size());
+			// IndexCount
 			
-			unsigned int(aModel.meshes[i].indices.size())// IndexCount
-			});
 	}
 	
 }

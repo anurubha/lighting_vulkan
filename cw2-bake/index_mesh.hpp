@@ -12,7 +12,11 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-//--    types                                   ///{{{1///////////////////////
+//For Task 1.5
+//#include <half.hpp>
+//using half_float::half;
+
+//--    types        
 struct TriangleSoup
 {
 	std::vector<glm::vec3> vert;
@@ -26,6 +30,7 @@ struct IndexedMesh
 	std::vector<glm::vec2> text;
 
 	std::vector<glm::vec4> tangent; // Task 1.4
+	//std::vector<std::vector<half>> tbnQuaternion; // Task 1.5
 
 	std::vector<std::uint32_t> indices;
 
@@ -34,7 +39,7 @@ struct IndexedMesh
 	IndexedMesh();
 };
 
-//--    functions                               ///{{{1///////////////////////
+//--    functions                             
 
 IndexedMesh make_indexed_mesh(
 	TriangleSoup const&,

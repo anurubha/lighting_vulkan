@@ -52,13 +52,13 @@ namespace
 		// Compiled shader code for the graphics pipeline(s)
 #		define SHADERDIR_ "assets/cw2/shaders/"
 
-		ShaderPath defaultShaderPath{ SHADERDIR_ "default.vert.spv" , SHADERDIR_ "default.frag.spv" };
+		//ShaderPath defaultShaderPath{ SHADERDIR_ "default.vert.spv" , SHADERDIR_ "default.frag.spv" }; // For Prep and Debug
 		ShaderPath lightingShaderPath{ SHADERDIR_ "lighting.vert.spv", SHADERDIR_ "lighting.frag.spv" };
-		ShaderPath alphamaskShaderPath{ SHADERDIR_ "alphamasking.vert.spv", SHADERDIR_ "alphamasking.frag.spv" };
+		ShaderPath alphamaskShaderPath{ SHADERDIR_ "lighting.vert.spv", SHADERDIR_ "alphamasking.frag.spv" };
 
 #		undef SHADERDIR_
 
-			// General rule: with a standard 24 bit or 32 bit float depth buffer,
+		// General rule: with a standard 24 bit or 32 bit float depth buffer,
 		// you can support a 1:1000 ratio between the near and far plane with
 		// minimal depth fighting. Larger ratios will introduce more depth
 		// fighting problems; smaller ratios will increase the depth buffer's
@@ -221,7 +221,7 @@ int main() try
 	
 	//Create a buffer for each mesh
 	std::vector<SceneMesh> sceneMeshes;
-	sceneMeshes.reserve(bakedModel.meshes.size());
+	sceneMeshes.resize(bakedModel.meshes.size());
 	create_mesh(bakedModel, allocator, window, sceneMeshes);
 	
 	
@@ -279,11 +279,7 @@ int main() try
 		NormalMap = 4
 	};
 	// load textures into imag
-	// 
-	// Create a TextureID->MaterialIDsMap. This maps the texture to differnt materials.
-	// Loop over the Materials and load and create images for texture depending on the type and add it to the map.
-	// If the TextureID already exists in the map, simply add the MaterialID to the vector and don't create a seperate view
-	//std::unordered_map <unsigned int, std::tuple <TextureType, std::vector<unsigned int>>> TextureMaterialsMap;
+
 
 	// Storing Texture Type in a Map. 
 	// Loop over the Materials and load and create images for texture depending on the type and add it to the map.
@@ -1120,7 +1116,7 @@ namespace
 			aSceneUBO,
 			VK_ACCESS_UNIFORM_READ_BIT,
 			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 			VK_PIPELINE_STAGE_TRANSFER_BIT
 		);
 
@@ -1130,7 +1126,7 @@ namespace
 			VK_ACCESS_TRANSFER_WRITE_BIT,
 			VK_ACCESS_UNIFORM_READ_BIT,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+			VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
 		);
 
 		// Clear values
@@ -1215,32 +1211,6 @@ namespace
 				vkCmdDrawIndexed(aCmdBuff, sceneMeshes[aMaterialMeshesMap[1][mat.first][i]].indexCount, 1, 0, 0, 0);
 			}
 		}
-
-
-		//For each mesh, Bind buffers and draw
-		//for (unsigned int i = 0; i < sceneMeshes.size(); i++)
-		//{
-		//	vkCmdBindDescriptorSets(aCmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, aPipeLayout,
-		//		1, 1, &aTexDescriptors[
-		//				aModel->materials[
-		//				aModel->meshes[i].materialId
-		//			].baseColorTextureId
-		//		], 0, nullptr);
-
-		////	// Bind vertex input 
-		//	VkBuffer vBuffers[3] = { sceneMeshes[i].positions.buffer, 
-		//							sceneMeshes[i].normals.buffer, 
-		//							sceneMeshes[i].texcoords.buffer };
-		//	VkDeviceSize offsets[3]{};
-		//	vkCmdBindVertexBuffers(aCmdBuff, 0, 3, vBuffers, offsets);
-
-		////	//Bind Index Buffer
-		//	vkCmdBindIndexBuffer(aCmdBuff, sceneMeshes[i].indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-		//	
-		//	//Draw
-		//	vkCmdDrawIndexed(aCmdBuff, sceneMeshes[i].indexCount, 1, 0, 0, 0);
-
-		//}
 		
 		// End the render pass 
 		vkCmdEndRenderPass(aCmdBuff);

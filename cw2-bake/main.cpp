@@ -109,6 +109,54 @@ catch( std::exception const& eErr )
 
 namespace
 {
+	// TBN_to_Quaternion() is for Task 1.5
+	/*glm::vec3 TBN_to_Quaternion(glm::mat3 TBN)
+	{
+		float t;
+		glm::vec4 q;
+
+		if (TBN[2][2] < 0) {
+			if (TBN[0][0] > TBN[1][1]) 
+			{
+				t = 1 + TBN[0][0] - TBN[1][1] - TBN[2][2];
+				q = glm::vec4(t, TBN[0][1] + TBN[1][0], TBN[2][0] + TBN[0][2], TBN[1][2] - TBN[2][1]);
+			}
+			else {
+				t = 1 - TBN[0][0] + TBN[1][1] - TBN[2][2];
+				q = glm::vec4(TBN[0][1] + TBN[1][0], t, TBN[1][2] + TBN[2][1], TBN[2][0] - TBN[0][2]);
+			}
+		}
+		else {
+			if (TBN[0][0] < -TBN[1][1]) {
+				t = 1 - TBN[0][0] - TBN[1][1] + TBN[2][2];
+				q = glm::vec4(TBN[2][0] + TBN[0][2], TBN[1][2] + TBN[2][1], t, TBN[0][1] - TBN[1][0]);
+			}
+			else {
+				t = 1 + TBN[0][0] + TBN[1][1] + TBN[2][2];
+				q = glm::vec4(TBN[1][2] - TBN[2][1], TBN[2][0] - TBN[0][2], TBN[0][1] - TBN[1][0], t);
+			}
+		}
+		q *= 0.5 / sqrt(t);
+
+		return glm::vec3(q.x, q.y, q.z);
+	}*/
+	// Generate_TBN_Quaternion() is for Task 1.5
+	/*void Generate_TBN_Quaternion(IndexedMesh& indexedMesh)
+	{
+		assert(indexedMesh.tangent.size() != 0);
+
+		for (unsigned int i = 0; i < indexedMesh.vert.size(); i++)
+		{	
+			glm::vec3 normal = normalize(indexedMesh.norm[i]);
+			glm::vec4 tangent = normalize(indexedMesh.tangent[i]);
+			glm::vec3 bitangent = normalize(glm::cross(normal, glm::vec3(tangent.x,tangent.y,tangent.z)) * tangent.w);
+
+			glm::vec3 quaternion = TBN_to_Quaternion(glm::mat3(tangent, bitangent, normal));
+			
+			indexedMesh.tbnQuaternion.push_back({ half(quaternion.x), half(quaternion.y), half(quaternion.z) });
+		}
+	}*/
+
 	void ComputeTangents(IndexedMesh &indexedMesh)
 	{
 		std::vector <tgen::VIndexT> indices;
@@ -192,7 +240,11 @@ namespace
 		{
 			outputVerts += mesh.vert.size();
 			outputIndices += mesh.indices.size();	
+
+			// For Task 1.4
 			ComputeTangents(mesh);
+			// For Task 1.5
+			//Generate_TBN_Quaternion(mesh);
 		}
 		
 
